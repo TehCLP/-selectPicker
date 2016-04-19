@@ -1,0 +1,44 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title></title>
+</head>
+<body>
+
+    <div>
+    
+        <select id='ddlDay'></select>
+        <select id='ddlMonth'></select>
+        <select id='ddlYear'></select>
+
+    </div>
+
+    <script src="https://code.jquery.com/jquery-1.12.3.min.js" type="text/javascript"></script>
+    <script src="select-datepicker.js" type="text/javascript"></script>
+    <script type="text/javascript">
+
+        $selectPicker.init({
+
+            idDay: '#ddlDay'
+            , idMonth: '#ddlMonth'
+            , idYear: '#ddlYear'
+            , language: 'th'
+
+            //, minDate: new Date()
+            //, maxDate: new Date()
+
+            //, minDate: '2015-11-05'
+            //, maxDate: '2016-05-15'
+            , timeAfter: '23.05'
+
+            , holiday: {
+                startDate: '2016-04-19'
+                , endDate: '2016-04-21'
+                , toDate: '2016-04-22'
+            }
+        });
+
+    </script>
+</body>
+</html>
