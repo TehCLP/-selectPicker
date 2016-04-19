@@ -31,11 +31,11 @@
 
         _holiday = o.holiday;
 
-        console.log('getTime() : ', getTime());
-        console.log('_timeAfter : ', _timeAfter);
-        console.log('today : ', today);
+        //console.log('getTime() : ', getTime());
+        //console.log('_timeAfter : ', _timeAfter);
+        //console.log('today : ', today);
 
-        console.log(o.holiday);
+        //console.log(o.holiday);
 
         fillDate(today.getMonth() + 1, today.getFullYear(), true, true);
 
