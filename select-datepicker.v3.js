@@ -1,6 +1,7 @@
 ﻿
 
 (function ($) {
+    'use strict'
 
     var monthTH = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"]
         , monthEN = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
@@ -15,26 +16,28 @@
     }
 
     var selectPicker = function (o) {
+        var self = this;
 
-        this.day = this.today = new Date();
+        self.today = new Date();
 
-        this.$day = $(o.idDay);
-        this.$month = $(o.idMonth);
-        this.$year = $(o.idYear);
+        self.$day = $(o.idDay);
+        self.$month = $(o.idMonth);
+        self.$year = $(o.idYear);
 
-        this._lang = o.language;
+        self._lang = o.language;
 
-        this._minDate = parseDate(o.minDate);
-        this._maxDate = parseDate(o.maxDate);
+        self._minDate = parseDate(o.minDate);
+        self._minDateTmp = self._minDate;
 
-        this._timeAfter = (o.timeAfter == '' ? '' : o.timeAfter).replace(/[:\.]/g, '');
+        self._maxDate = parseDate(o.maxDate);
 
-        this.o = o;
+        self._timeAfter = (o.timeAfter == '' ? '' : o.timeAfter).replace(/[:\.]/g, '');
 
-        this.flag = true;
-        this.flagInHoliday = false;
+        self._arrAddDay = [];
 
-        this.initial();
+        self._holiday = o.holiday;
+
+        self.initial();
     }
 
     selectPicker.prototype = {
@@ -42,160 +45,169 @@
 
             var self = this;
 
-            //console.log(self);
+            self.fillDate(self.today.getMonth() + 1, self.today.getFullYear(), true, true);
 
-            this.fillDate(this.today.getMonth() + 1, this.today.getFullYear(), true, true);
-
-            this.$month.on('change', function () {
-                self.changeDate($(this).val(), self.$year.val(), false, false);
+            self.$month.on('change', function () {
+                self.fillDate($(this).val(), self.$year.val(), false, false);
             });
 
-            this.$year.on('change', function () {
-                self.changeDate(self.$month.val(), $(this).val(), true, false);
+            self.$year.on('change', function () {
+                self.fillDate(self.$month.val(), $(this).val(), true, false);
             });
-        },
+        }, 
 
-        changeDate: function (m, y, flagMonth, flagYear) {
-            if (this._lang == 'th') {
+        fillDate: function (m, y, flagMonth, flagYear) {
+            var self = this;
+
+            self._arrAddDay = chkHoliday(self._holiday, self._timeAfter)
+
+            if (self._arrAddDay[0] < 1 && chkTimeAfter(self._timeAfter)) {
+                self._arrAddDay[0] = 1;
+            }
+
+            if (self._arrAddDay[0] > 0) {
+                //self._minDate = new Date().addDays(self._arrAddDay[0]);
+                self._minDate = (self._arrAddDay[1] ? new Date() : self._minDateTmp).addDays(self._arrAddDay[0]);
+            }
+
+            if (flagYear) {
+                self.fillYear();
+                y = self.$year.val();
+            }
+
+            if (self._lang == 'th') {
                 y = y - 543
             }
 
-            this.fillDate(m, y, flagMonth, flagYear);
-        },
-
-        fillDate: function (m, y, flagMonth, flagYear) {
-
-            var nAddDay = 0;
-
-            if (this.flag == true)
-                nAddDay = chkHoliday(this.o.holiday, this.o.timeAfter)
-
-            if (nAddDay < 1 && chkTimeAfter() && this.flag == false) {
-                nAddDay = 1;
-            }
-
-            if (this.flag) {
-                this.today = this.today.addDays(nAddDay);
-                this.flag = false;
-            }
-
             if (flagMonth) {
-                this.fillMonth(y);
-                m = this.$month.val()
+                self.fillMonth(y);
+                m = self.$month.val()
             }
 
-            if (flagYear)
-                this.fillYear();
-
-            this.fillDay(m, y);
+            self.fillDay(m, y);
         },
         fillDay: function (m, y) {
-            var dateStart = 1
-            , dayInMonth = new Date(y, m, 0).getDate() + 1
-            , d = this.$day.val() || ''
+            var self = this
+                , dateStart = 1
+                , dayInMonth = new Date(y, m, 0).getDate() + 1
+                , d = self.$day.val() || ''
 
+            if (self._maxDate != '') {
+                if (y == self._maxDate.getFullYear()) {
+                    if (m == self._maxDate.getMonth() + 1) {
+                        dayInMonth = self._maxDate.getDate() + 1;
+                    }
+                }
+            }
+            
+            if (y == self.today.getFullYear() && m == self.today.getMonth() + 1 && self._minDate == '')
+                dateStart = self.today.getDate();
 
-            if (this._maxDate != '') {
-                if (y == this._maxDate.getFullYear()) {
-                    if (m == this._maxDate.getMonth() + 1) {
-                        dayInMonth = this._maxDate.getDate() + 1;
+            if (self._minDate != '') {
+                if (y == self._minDate.getFullYear()) {
+                    if (m == self._minDate.getMonth() + 1) {
+                        dateStart = self._minDate.getDate();
                     }
                 }
             }
 
-            if (y == this.today.getFullYear() && m == this.today.getMonth() + 1 && this._minDate == '')
-                dateStart = this.today.getDate();
-
-            if (this._minDate != '') {
-                if (y == this._minDate.getFullYear()) {
-                    if (m == this._minDate.getMonth() + 1) {
-                        dateStart = this._minDate.getDate();
-                    }
-                }
-            }
-
-            this.$day.empty();
+            self.$day.empty();
             for (var i = dateStart; i < dayInMonth; i++) {
-                this.$day.append('<option value="' + i + '">' + (i) + '</option>').val(i);
+                self.$day.append('<option value="' + i + '">' + (i) + '</option>').val(i);
             }
 
             if (d == '') {
-                this.$day.val(this.today.getDate());
+                if (dateStart > self.today.getDate() || self._arrAddDay[1])
+                    self.$day.val(dateStart);
+                else
+                    self.$day.val(self.today.getDate());
             } else {
                 if (dateStart > d)
-                    this.$day.val(dateStart);
+                    self.$day.val(dateStart);
                 else if (d < dayInMonth)
-                    this.$day.val(d);
+                    self.$day.val(d);
                 else
-                    this.$day.val(dayInMonth - 1);
+                    self.$day.val(dayInMonth - 1);
             }
         },
         fillMonth: function (y) {
-            var _arrMonth = monthEN
-            , monthStart = 1
-            , maxMonth = 13
-            , mo = this.$month.val() || ''
+            var self = this
+                , _arrMonth = monthEN
+                , monthStart = 1
+                , maxMonth = 13
+                , mo = self.$month.val() || ''
 
-            if (this._lang == 'th')
+            if (self._lang == 'th')
                 _arrMonth = monthTH;
 
-            if (this._maxDate != '') {
-                if (y == this._maxDate.getFullYear())
-                    maxMonth = this._maxDate.getMonth() + 1 + 1;
-            } 
-
-            if (this._minDate != '') {
-                if (y == this._minDate.getFullYear())
-                    monthStart = this._minDate.getMonth() + 1;
-            } else if (y == this.today.getFullYear()) {
-                monthStart = this.today.getMonth() + 1;
+            if (self._maxDate != '') {
+                if (y == self._maxDate.getFullYear())
+                    maxMonth = self._maxDate.getMonth() + 1 + 1;
+            }
+            
+            if (self._minDate != '') {
+                if (y == self._minDate.getFullYear())
+                    monthStart = self._minDate.getMonth() + 1;
+            } else if (y == self.today.getFullYear()) {
+                monthStart = self.today.getMonth() + 1;
             }
 
-            this.$month.empty();
+            self.$month.empty();
             for (var i = monthStart; i < maxMonth; i++) {
-                this.$month.append('<option value="' + i + '">' + _arrMonth[i - 1] + '</option>');
+                self.$month.append('<option value="' + i + '">' + _arrMonth[i - 1] + '</option>');
             }
 
             if (mo == '') {
-                this.$month.val(this.today.getMonth() + 1);
+                if (monthStart > self.today.getMonth() + 1 || self._arrAddDay[1])
+                    self.$month.val(monthStart);
+                else
+                    self.$month.val(self.today.getMonth() + 1);
             } else {
                 if (mo < monthStart)
-                    this.$month.val(monthStart);
+                    self.$month.val(monthStart);
                 else if (mo > maxMonth - 1)
-                    this.$month.val(maxMonth - 1)
+                    self.$month.val(maxMonth - 1)
                 else
-                    this.$month.val(mo);
+                    self.$month.val(mo);
             }
         },
         fillYear: function () {
-            var yearStart = yearEnd = yearNow = this.today.getFullYear()
-            , tmp
-            , yy = this.$year.val() || ''
+            var self = this
+                , yearNow = self.today.getFullYear()
+                , yearStart = yearNow
+                , yearEnd = yearNow
+                , tmp
+                , yy = self.$year.val() || ''
 
-            if (this._minDate != '')
-                yearStart = this._minDate.getFullYear();
+            if (self._minDate != '')
+                yearStart = self._minDate.getFullYear();
 
-            if (this._maxDate != '') {
-                tmp = this._maxDate.getFullYear() - yearNow + 1;
+            if (self._maxDate != '') {
+                tmp = self._maxDate.getFullYear() - yearNow + 1;
                 yearEnd += tmp;
             } else {
                 yearEnd += 2;
             }
 
-            if (this._lang == 'th') {
+            if (self._lang == 'th') {
                 yearStart += 543;
                 yearEnd += 543
                 yearNow += 543;
             }
 
-            this.$year.empty();
+            self.$year.empty();
+            tmp = yearStart;
             for (var i = yearStart; i < yearEnd; i++) {
-                tmp = yearStart++;
-                this.$year.append('<option value="' + tmp + '">' + (tmp) + '</option>');
+                self.$year.append('<option value="' + tmp + '">' + (tmp) + '</option>');
+                tmp++;
             }
 
-            if (yy == '')
-                this.$year.val(yearNow);
+            if (yy == '') {
+                if (yearStart > yearNow)
+                    self.$year.val(yearStart);
+                else
+                    self.$year.val(yearNow);
+            }
         }
 
     }
@@ -222,7 +234,7 @@
 
     function chkHoliday(_holiday, _timeAfter) {
 
-        var _addDay = 0;
+        var _addDay = [0, false];
 
         if (_holiday.startDate != '' && _holiday.endDate != '') {
 
@@ -231,12 +243,13 @@
             if (chkDayInRange(_holiday.startDate, _holiday.endDate)) {
 
                 if (!(parseDate(_holiday.startDate, 'i') == parseDate(today, 'i') && !isTimeAfter)) {
-                    _addDay = calDateDiff(today, _holiday.toDate)
+                    _addDay[0] = calDateDiff(today, _holiday.toDate)
+                    _addDay[1] = true;
                 }
 
             } else if (isTimeAfter) {
 
-                _addDay = 1
+                _addDay[0] = 1
 
             }
         }
@@ -257,7 +270,7 @@
     function calDateDiff(sdate, edate) {
         // date format => yyyy-mm-dd
 
-        var _dt = new Date(sdate)
+        var _dt = parseDate(sdate)
             , _ds = parseDate(sdate, 'i')
             , _de = parseDate(edate, 'i')
             , n = 0
@@ -301,7 +314,7 @@
     }
 
     window.$selectPicker = window.$selectPicker || {
-
+        ver: '3.1',
         init: function (options) {
 
             var opt = $.extend({
